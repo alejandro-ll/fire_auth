@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="test_andorid_firebase">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <title>test_andorid_firebase</title>
+  <link rel="manifest" href="manifest.json">
+  <!-- Firebase setup -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-remote-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-performance.js"></script>
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyDey9cyNvBBMVpeVQWgZChZDJPxbecapW8",
+      projectId: "my-test-auth-3b2be",
+      storageBucket: "my-test-auth-3b2be.appspot.com",
+      appId: "1:750135621005:android:2760c19bd4687ffd0ef9c4",
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+  </script>
+</head>
+<body>
+  <script>
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      // Intenta abrir la aplicación móvil en Android usando el esquema
+      window.location.href = 'intent://my-test-auth-3b2be.web.app/#Intent;scheme=https;package=com.example.test_andorid_firebase;end'; 
+    } else {
+      // Si no es Android, muestra el contenido web normal
+      document.getElementById('load').textContent = 'Please open this link on a mobile device.';
+    }
+  </script>
+  <script src="flutter.js" async></script>
+  <div id="load">Loading...</div>
+</body>
+</html>
