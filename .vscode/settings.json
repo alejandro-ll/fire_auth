@@ -1,3 +1,4 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.sourceDirectory": "C:/Users/paraq/StudioProjects/fire_auth/windows/flutter/ephemeral/.plugin_symlinks/firebase_auth/example/windows/runner"
 }
