@@ -1,5 +1,6 @@
 import 'package:test_andorid_firebase/services/auth_service.dart';
 import 'package:test_andorid_firebase/pages/maps/principal_map.dart';
+import 'package:test_andorid_firebase/pages/maps/add_bill_map.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -42,6 +43,8 @@ class Home extends StatelessWidget {
                 _logout(context),
                 const SizedBox(height: 20),
                 _navigateToMap(context),
+                const SizedBox(height: 20),
+                _navigateToBillMap(context)
             ],
           ),
         ),
@@ -82,6 +85,25 @@ class Home extends StatelessWidget {
         );
       },
       child: const Text("Go to Map"),
+    );
+  }
+    Widget _navigateToBillMap(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xff0D6EFD),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        minimumSize: const Size(double.infinity, 60),
+        elevation: 0,
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BillMap()),
+        );
+      },
+      child: const Text("Go to Bill Map"),
     );
   }
 }

@@ -77,7 +77,7 @@ class _MyAppState extends State<MyApp> {
             ),
           );
         });
-      }
+      } 
     } else if (path == '/login') {
       Navigator.pushNamed(context, '/login');
     } else if (path == '/signup') {
