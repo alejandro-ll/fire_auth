@@ -4,6 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../pages/home/home.dart';
 import '../pages/login/login.dart';
+import '../main.dart';
 
 class AuthService {
 
@@ -64,24 +65,37 @@ class AuthService {
   Future<void> signInWithEmailLink({
     required String email,
     required String emailLink,
-    required BuildContext context,
   }) async {
     try {
+      // Intento de inicio de sesión con enlace de correo electrónico
       final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailLink(
         email: email,
         emailLink: emailLink,
       );
+
+      // Comprobar si se autenticó el usuario
       if (userCredential.user != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (BuildContext context) => const Home(),
-          ),
-        );
+        print("Usuario autenticado correctamente.");
+
+        // Pequeño retraso antes de la navegación para asegurar que el árbol de widgets esté listo
+        await Future.delayed(Duration(milliseconds: 200));
+
+        // Comprobar que navigatorKey tiene un estado válido antes de navegar
+        if (MyApp.navigatorKey.currentState != null) {
+          MyApp.navigatorKey.currentState?.pushReplacement(
+            MaterialPageRoute(builder: (BuildContext context) => const Home()),
+          );
+          print("Navegación a Home iniciada.");
+        } else {
+          print("Error: navigatorKey no tiene un estado válido.");
+        }
+      } else {
+        print("No se autenticó ningún usuario.");
       }
     } catch (e) {
+      print("Error al iniciar sesión con el enlace: $e");
       Fluttertoast.showToast(
-        msg: e.toString(),
+        msg: "Error: ${e.toString()}",
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.SNACKBAR,
         backgroundColor: Colors.black54,
@@ -90,6 +104,7 @@ class AuthService {
       );
     }
   }
+
 
   Future<void> signup({
     required String email,

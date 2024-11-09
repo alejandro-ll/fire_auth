@@ -20,6 +20,9 @@ void main() async {
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  // GlobalKey para el Navigator, utilizado para navegación segura en enlaces mágicos
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -34,7 +37,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initUniLinks() async {
-    // Handle incoming links
+    // Escucha enlaces entrantes
     _sub = uriLinkStream.listen((Uri? uri) {
       if (uri != null) {
         print('Received URI: ${uri.toString()}');
@@ -44,7 +47,7 @@ class _MyAppState extends State<MyApp> {
       print('Error occurred: $err');
     });
 
-    // Handle initial link
+    // Manejo de enlace inicial
     try {
       final initialUri = await getInitialUri();
       if (initialUri != null) {
@@ -60,31 +63,23 @@ class _MyAppState extends State<MyApp> {
     final path = uri.path;
     final queryParams = uri.queryParameters;
 
+    // Verifica si es un enlace de inicio de sesión por correo electrónico
     if (FirebaseAuth.instance.isSignInWithEmailLink(uri.toString())) {
       final String email = queryParams['email'] ?? '';
       print('Email: $email');
       if (email.isNotEmpty) {
+        // Inicia sesión con enlace mágico
         await AuthService().signInWithEmailLink(
           email: email,
           emailLink: uri.toString(),
-          context: context,
         );
-        Future.delayed(Duration.zero, () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) => const Home(),
-            ),
-          );
-        });
       } 
     } else if (path == '/login') {
-      Navigator.pushNamed(context, '/login');
+      MyApp.navigatorKey.currentState?.pushNamed('/login');
     } else if (path == '/signup') {
-      Navigator.pushNamed(context, '/signup');
+      MyApp.navigatorKey.currentState?.pushNamed('/signup');
     } else {
-      // Handle other paths or show an error page
-      Navigator.pushNamed(context, '/');
+      MyApp.navigatorKey.currentState?.pushNamed('/');
     }
   }
 
@@ -97,6 +92,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: MyApp.navigatorKey,
       title: 'Deep Link Example',
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
