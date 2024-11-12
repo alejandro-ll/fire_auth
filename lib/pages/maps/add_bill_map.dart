@@ -68,9 +68,60 @@ class _BillMap extends State<BillMap> {
             title: 'Subasta Activa',
             snippet: 'Precio: \$${data['price']}',
           ),
+          onTap: () {
+            final userId = FirebaseAuth.instance.currentUser!.uid;
+            if (userId != data['userId']) {
+              _showBidDialog(doc.id);
+            }
+          },
         );
       }).toSet());
     });
+  }
+
+  void _placeBid(String auctionId, double bidAmount) async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('auctions')
+        .doc(auctionId)
+        .collection('bids')
+        .doc(userId)
+        .set({
+      'userId': userId,
+      'bidAmount': bidAmount,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await FirebaseFirestore.instance
+        .collection('auctions')
+        .doc(auctionId)
+        .update({
+      'currentPrice': bidAmount,
+    });
+
+    setState(() {
+      _markers = _markers.map((marker) {
+        if (marker.markerId.value == auctionId) {
+          return marker.copyWith(
+            infoWindowParam: InfoWindow(
+              title: 'Subasta Activa',
+              snippet: 'Precio: \$${bidAmount}',
+            ),
+          );
+        }
+        return marker;
+      }).toSet();
+    });
+
+    Fluttertoast.showToast(
+      msg: 'Puja realizada con éxito.',
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.SNACKBAR,
+      backgroundColor: Colors.black54,
+      textColor: Colors.white,
+      fontSize: 14.0,
+    );
   }
 
   @override
@@ -181,7 +232,7 @@ class _BillMap extends State<BillMap> {
           position: tappedPoint,
           infoWindow: InfoWindow(
             title: 'Nueva Subasta',
-            snippet: 'Lat: ${tappedPoint.latitude}, Lng: ${tappedPoint.longitude}',
+            snippet: 'Precio: \$${price.toString()}',
           ),
         ),
       );
@@ -192,6 +243,7 @@ class _BillMap extends State<BillMap> {
       'latitude': tappedPoint.latitude,
       'longitude': tappedPoint.longitude,
       'price': price,
+      'initialPrice': price,
       'plate': plate,
       'active': true,
       'startTime': FieldValue.serverTimestamp(),
@@ -206,6 +258,51 @@ class _BillMap extends State<BillMap> {
         _markers.removeWhere((marker) => marker.markerId.value == docRef.id);
       });
     });
+  }
+
+  void _showBidDialog(String auctionId) {
+    final TextEditingController bidController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Pujar'),
+          content: TextField(
+            controller: bidController,
+            decoration: InputDecoration(labelText: 'Cantidad de la puja'),
+            keyboardType: TextInputType.number,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final double? bidAmount = double.tryParse(bidController.text);
+                if (bidAmount != null) {
+                  _placeBid(auctionId, bidAmount);
+                  Navigator.of(context).pop();
+                } else {
+                  Fluttertoast.showToast(
+                    msg: 'Por favor, ingrese una cantidad válida.',
+                    toastLength: Toast.LENGTH_LONG,
+                    gravity: ToastGravity.SNACKBAR,
+                    backgroundColor: Colors.black54,
+                    textColor: Colors.white,
+                    fontSize: 14.0,
+                  );
+                }
+              },
+              child: Text('Pujar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   _requestPermission() async {
