@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:test_andorid_firebase/services/map_service.dart';
+import 'package:test_andorid_firebase/main.dart';
+import 'package:test_andorid_firebase/pages/auction/auction_details.dart';
 import 'package:location/location.dart' as loc;
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,7 +16,7 @@ class BillMap extends StatefulWidget {
   _BillMap createState() => _BillMap();
 }
 
-class _BillMap extends State<BillMap> {
+class _BillMap extends State<BillMap> with RouteAware {
   late GoogleMapController _mapController;
   Set<Marker> _markers = {};
 
@@ -23,6 +25,27 @@ class _BillMap extends State<BillMap> {
     super.initState();
     _requestPermission();
     _loadUserAuction();
+    _loadAllAuctions();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      MyApp.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    MyApp.routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Se llama cuando se vuelve a esta página desde otra página
     _loadAllAuctions();
   }
 
@@ -66,7 +89,7 @@ class _BillMap extends State<BillMap> {
           position: LatLng(data['latitude'], data['longitude']),
           infoWindow: InfoWindow(
             title: 'Subasta Activa',
-            snippet: 'Precio: \$${data['price']}',
+            snippet: 'Precio: \$${data['currentPrice']}',
           ),
           onTap: () {
             final userId = FirebaseAuth.instance.currentUser!.uid;
@@ -244,6 +267,7 @@ class _BillMap extends State<BillMap> {
       'longitude': tappedPoint.longitude,
       'price': price,
       'initialPrice': price,
+      'currentPrice': price,
       'plate': plate,
       'active': true,
       'startTime': FieldValue.serverTimestamp(),
@@ -260,7 +284,11 @@ class _BillMap extends State<BillMap> {
     });
   }
 
-  void _showBidDialog(String auctionId) {
+  void _showBidDialog(String auctionId) async {
+    final doc = await FirebaseFirestore.instance.collection('auctions').doc(auctionId).get();
+    final data = doc.data();
+    final double currentPrice = data?['currentPrice'] ?? 0.0; 
+    
     final TextEditingController bidController = TextEditingController();
 
     showDialog(
@@ -274,37 +302,53 @@ class _BillMap extends State<BillMap> {
             keyboardType: TextInputType.number,
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final double? bidAmount = double.tryParse(bidController.text);
-                if (bidAmount != null) {
-                  _placeBid(auctionId, bidAmount);
-                  Navigator.of(context).pop();
-                } else {
-                  Fluttertoast.showToast(
-                    msg: 'Por favor, ingrese una cantidad válida.',
-                    toastLength: Toast.LENGTH_LONG,
-                    gravity: ToastGravity.SNACKBAR,
-                    backgroundColor: Colors.black54,
-                    textColor: Colors.white,
-                    fontSize: 14.0,
-                  );
-                }
-              },
-              child: Text('Pujar'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.info_outline),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AuctionDetails(auctionId: auctionId),
+                      ),
+                    );
+                  },
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final double? bidAmount = double.tryParse(bidController.text);
+                    if (bidAmount != null && bidAmount > currentPrice) {
+                      _placeBid(auctionId, bidAmount);
+                      Navigator.of(context).pop();
+                    } else {
+                      Fluttertoast.showToast(
+                        msg: 'Por favor, ingrese una cantidad válida mayor al precio actual.',
+                        toastLength: Toast.LENGTH_LONG,
+                        gravity: ToastGravity.SNACKBAR,
+                        backgroundColor: Colors.black54,
+                        textColor: Colors.white,
+                        fontSize: 14.0,
+                      );
+                    }
+                  },
+                  child: Text('Pujar'),
+                ),
+              ],
             ),
           ],
         );
       },
     );
   }
-
   _requestPermission() async {
     var status = await Permission.locationAlways.request();
     if (status.isGranted) {

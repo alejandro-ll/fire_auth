@@ -22,6 +22,7 @@ class MyApp extends StatefulWidget {
 
   // GlobalKey para el Navigator, utilizado para navegación segura en enlaces mágicos
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
   @override
   _MyAppState createState() => _MyAppState();
@@ -93,6 +94,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: MyApp.navigatorKey,
+      navigatorObservers: [MyApp.routeObserver],
       title: 'Deep Link Example',
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
