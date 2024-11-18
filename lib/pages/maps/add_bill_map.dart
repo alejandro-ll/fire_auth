@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:test_andorid_firebase/services/map_service.dart';
 import 'package:test_andorid_firebase/main.dart';
 import 'package:test_andorid_firebase/pages/auction/auction_details.dart';
+import 'package:test_andorid_firebase/pages/auction/auction_menu.dart';
 import 'package:location/location.dart' as loc;
 import 'package:permission_handler/permission_handler.dart';
 
@@ -150,7 +152,22 @@ class _BillMap extends State<BillMap> with RouteAware {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Mapa con Marcadores')),
+      appBar: AppBar(
+        title: Text('Mapa con Marcadores'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AuctionMenu(),
+                ),
+              );
+            },
+            child: Text('Menú de Subastas'),
+          ),
+        ],
+      ),
       body: GoogleMap(
         onMapCreated: (controller) {
           _mapController = controller;
@@ -275,13 +292,103 @@ class _BillMap extends State<BillMap> with RouteAware {
 
     // Establecer un temporizador de 5 minutos para la subasta
     Future.delayed(Duration(minutes: 5), () async {
-      await FirebaseFirestore.instance.collection('auctions').doc(docRef.id).update({
-        'active': false,
-      });
+      final highestBid = await getHighestBid(docRef.id);
+      if (highestBid != null) {
+        final highestBidderId = highestBid['userId'];
+        final highestBidAmount = highestBid['bidAmount'];
+        final code = _generateCode();
+
+        try {
+          await FirebaseFirestore.instance.collection('auctions').doc(docRef.id).update({
+            'active': false,
+            'winnerId': highestBidderId,
+            'code': code,
+          });
+
+          Fluttertoast.showToast(
+            msg: 'La subasta ha finalizado. El ganador ha pagado \$${highestBidAmount}.',
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.SNACKBAR,
+            backgroundColor: Colors.black54,
+            textColor: Colors.white,
+            fontSize: 14.0,
+          );
+
+          // Mostrar el código al ganador
+          if (FirebaseAuth.instance.currentUser!.uid == highestBidderId) {
+            _showWinnerCodeDialog(code);
+          }
+        } catch (e) {
+          Fluttertoast.showToast(
+            msg: 'Error al actualizar la subasta: ${e.toString()}',
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.SNACKBAR,
+            backgroundColor: Colors.black54,
+            textColor: Colors.white,
+            fontSize: 14.0,
+          );
+        }
+      } else {
+        Fluttertoast.showToast(
+          msg: 'La subasta ha finalizado sin pujas.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.SNACKBAR,
+          backgroundColor: Colors.black54,
+          textColor: Colors.white,
+          fontSize: 14.0,
+        );
+
+        await FirebaseFirestore.instance.collection('auctions').doc(docRef.id).update({
+          'active': false,
+        });
+      }
+
       setState(() {
         _markers.removeWhere((marker) => marker.markerId.value == docRef.id);
       });
     });
+  }
+
+  Future<Map<String, dynamic>?> getHighestBid(String auctionId) async {
+    final bids = await FirebaseFirestore.instance
+        .collection('auctions')
+        .doc(auctionId)
+        .collection('bids')
+        .orderBy('bidAmount', descending: true)
+        .limit(1)
+        .get();
+
+    if (bids.docs.isNotEmpty) {
+      return bids.docs.first.data();
+    } else {
+      return null;
+    }
+  }
+
+  String _generateCode() {
+    final random = Random();
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return String.fromCharCodes(Iterable.generate(6, (_) => characters.codeUnitAt(random.nextInt(characters.length))));
+  }
+
+  void _showWinnerCodeDialog(String code) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Código de Ganador'),
+          content: Text('Tu código es: $code'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showBidDialog(String auctionId) async {
@@ -349,6 +456,7 @@ class _BillMap extends State<BillMap> with RouteAware {
       },
     );
   }
+
   _requestPermission() async {
     var status = await Permission.locationAlways.request();
     if (status.isGranted) {

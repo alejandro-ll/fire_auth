@@ -13,13 +13,15 @@ class AuctionDetails extends StatefulWidget {
 }
 
 class _AuctionDetailsState extends State<AuctionDetails> {
-  late DocumentSnapshot auction;
+  DocumentSnapshot? auction;
   late TextEditingController bidController;
+  late TextEditingController codeController;
 
   @override
   void initState() {
     super.initState();
     bidController = TextEditingController();
+    codeController = TextEditingController();
     _loadAuctionDetails();
   }
 
@@ -33,7 +35,6 @@ class _AuctionDetailsState extends State<AuctionDetails> {
 
   void _placeBid(double bidAmount) async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
-
     await FirebaseFirestore.instance
         .collection('auctions')
         .doc(widget.auctionId)
@@ -65,6 +66,60 @@ class _AuctionDetailsState extends State<AuctionDetails> {
     _loadAuctionDetails(); // Recargar los detalles de la subasta
   }
 
+  void _showCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Introducir Código'),
+          content: TextField(
+            controller: codeController,
+            decoration: InputDecoration(labelText: 'Código'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _verifyCode();
+              },
+              child: Text('Verificar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _verifyCode() async {
+    final data = auction!.data() as Map<String, dynamic>;
+    final code = data['code'];
+    if (codeController.text == code) {
+      Fluttertoast.showToast(
+        msg: 'Código verificado. Subasta cobrada con éxito.',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.SNACKBAR,
+        backgroundColor: Colors.black54,
+        textColor: Colors.white,
+        fontSize: 14.0,
+      );
+      Navigator.of(context).pop();
+    } else {
+      Fluttertoast.showToast(
+        msg: 'Código incorrecto. Inténtalo de nuevo.',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.SNACKBAR,
+        backgroundColor: Colors.black54,
+        textColor: Colors.white,
+        fontSize: 14.0,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (auction == null) {
@@ -74,9 +129,11 @@ class _AuctionDetailsState extends State<AuctionDetails> {
       );
     }
 
-    final data = auction.data() as Map<String, dynamic>;
+    final data = auction!.data() as Map<String, dynamic>;
     final userId = FirebaseAuth.instance.currentUser!.uid;
     final isOwner = userId == data['userId'];
+    final isWinner = userId == data['winnerId'];
+    final currentPrice = data['currentPrice'] ?? data['initialPrice'];
 
     return Scaffold(
       appBar: AppBar(title: Text('Detalles de la Subasta')),
@@ -87,9 +144,13 @@ class _AuctionDetailsState extends State<AuctionDetails> {
           children: [
             Text('Subasta de ${data['userId']}'),
             Text('Precio Inicial: \$${data['initialPrice']}'),
-            Text('Precio Actual: \$${data['currentPrice']}'),
+            Text('Precio Actual: \$${currentPrice}'),
             Text('Matrícula del Vehículo: ${data['plate']}'),
-            if (!isOwner) ...[
+            if (isWinner) ...[
+              Text('¡Felicidades! Has ganado la subasta.'),
+              Text('Tu código es: ${data['code']}'),
+            ],
+            if (!isOwner && !isWinner) ...[
               TextField(
                 controller: bidController,
                 decoration: InputDecoration(labelText: 'Cantidad de la puja'),
@@ -98,7 +159,7 @@ class _AuctionDetailsState extends State<AuctionDetails> {
               ElevatedButton(
                 onPressed: () {
                   final double? bidAmount = double.tryParse(bidController.text);
-                  if (bidAmount != null && bidAmount > data['currentPrice']) {
+                  if (bidAmount != null && bidAmount > currentPrice) {
                     _placeBid(bidAmount);
                   } else {
                     Fluttertoast.showToast(
@@ -112,6 +173,12 @@ class _AuctionDetailsState extends State<AuctionDetails> {
                   }
                 },
                 child: Text('Pujar'),
+              ),
+            ],
+            if (isOwner && data['active'] == false) ...[
+              ElevatedButton(
+                onPressed: _showCodeDialog,
+                child: Text('Introducir Código para Cobrar'),
               ),
             ],
           ],
