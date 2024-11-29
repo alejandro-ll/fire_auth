@@ -1,55 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <base href="/">
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="test_andorid_firebase">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-  <title>test_andorid_firebase</title>
-  <link rel="manifest" href="manifest.json">
-  <!-- Firebase setup -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-remote-config.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-performance.js"></script>
-  <script>
-    // Your web app's Firebase configuration
-    var firebaseConfig = {
-      apiKey: "AIzaSyDey9cyNvBBMVpeVQWgZChZDJPxbecapW8",
-      projectId: "my-test-auth-3b2be",
-      storageBucket: "my-test-auth-3b2be.appspot.com",
-      appId: "1:750135621005:android:2760c19bd4687ffd0ef9c4",
-    };
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    firebase.analytics();
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encuesta ParkAuction</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <script>
-    const isAndroid = /Android/i.test(navigator.userAgent);
+    <header>
+        <div id="user-info"></div>
+        <div id="g_id_onload"
+             data-client_id="750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleCredentialResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="icon"></div>
+    </header>
+    <main>
+        <h1>Encuesta ParkAuction</h1>
+        <form id="surveyForm">
+            <label>1. ¿Con qué frecuencia tienes dificultades para encontrar aparcamiento?</label><br>
+            <select name="frecuencia" id="frecuencia" required>
+                <option value="">Selecciona una opción</option>
+                <option value="Nunca">Nunca</option>
+                <option value="Rara vez">Rara vez</option>
+                <option value="A veces">A veces</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Siempre">Siempre</option>
+            </select><br><br>
 
-    if (isAndroid) {
-      // Intenta abrir la aplicación móvil en Android usando el esquema
-      window.location.href = 'intent://my-test-auth-3b2be.web.app/#Intent;scheme=https;package=com.example.test_andorid_firebase;end'; 
-    } else {
-      // Si no es Android, muestra el contenido web normal
-      document.getElementById('load').textContent = 'Please open this link on a mobile device.';
-    }
-  </script>
-  <script src="flutter.js" async></script>
-  <div id="load">Loading...</div>
+            <label>2. ¿Cuánto tiempo sueles dedicar a buscar aparcamiento?</label><br>
+            <select name="tiempo" id="tiempo" required>
+                <option value="">Selecciona una opción</option>
+                <option value="Menos de 5 minutos">Menos de 5 minutos</option>
+                <option value="5-10 minutos">5-10 minutos</option>
+                <option value="10-15 minutos">10-15 minutos</option>
+                <option value="Más de 15 minutos">Más de 15 minutos</option>
+            </select><br><br>
+
+            <label>3. ¿Qué tan estresante consideras la experiencia de buscar aparcamiento?</label><br>
+            <select name="estres" id="estres" required>
+                <option value="">Selecciona una opción</option>
+                <option value="Nada estresante">Nada estresante</option>
+                <option value="Poco estresante">Poco estresante</option>
+                <option value="Moderadamente estresante">Moderadamente estresante</option>
+                <option value="Muy estresante">Muy estresante</option>
+                <option value="Extremadamente estresante">Extremadamente estresante</option>
+            </select><br><br>
+
+            <button type="submit">Enviar</button>
+        </form>
+    </main>
+
+    <script type="module">
+        import { submitSurvey, handleCredentialResponse, getUserInfo } from './js/app.js';
+
+        document.getElementById("surveyForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const data = {
+                frecuencia: document.getElementById("frecuencia").value,
+                tiempo: document.getElementById("tiempo").value,
+                estres: document.getElementById("estres").value,
+            };
+
+            submitSurvey(data);
+        });
+
+        getUserInfo().then(user => {
+            if (user) {
+                document.getElementById("user-info").innerText = `Usuario: ${user.displayName || user.email}`;
+            }
+        });
+
+        window.handleCredentialResponse = handleCredentialResponse;
+    </script>
 </body>
 </html>
