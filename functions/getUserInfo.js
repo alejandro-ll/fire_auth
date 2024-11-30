@@ -1,8 +1,13 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors');
+const { OAuth2Client } = require('google-auth-library');
+
 
 const corsHandler = cors({ origin: "http://127.0.0.1:5000" });
+
+const client = new OAuth2Client('750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com');
+
 
 exports.getUserInfo = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
@@ -18,11 +23,30 @@ exports.getUserInfo = functions.https.onRequest((req, res) => {
     const idToken = authHeader.split('Bearer ')[1];
 
     try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const uid = decodedToken.uid;
+      console.log('Token de ID recibido del cliente:', idToken);
 
-      const user = await admin.auth().getUser(uid);
-      return res.status(200).send(user);
+      const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: '750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com',
+      });
+
+      const payload = ticket.getPayload();
+      console.log('Token de ID decodificado:', payload);
+
+      const user = await admin.auth().getUser(payload.sub);
+      console.log('Información del usuario obtenida:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      });
+
+      return res.status(200).send({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      });
     } catch (error) {
       console.error('Error al obtener la información del usuario:', error);
       return res.status(500).send({ message: `Error interno del servidor: ${error.message}` });

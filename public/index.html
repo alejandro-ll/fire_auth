@@ -54,6 +54,14 @@
 
             <button type="submit">Enviar</button>
         </form>
+        <h1>Prueba de la Función getUserInfo</h1>
+        <label for="tokenInput">Ingresa tu Bearer Token:</label>
+        <input type="text" id="tokenInput" placeholder="Ingresa el token aquí" style="width: 100%; margin-bottom: 10px;">
+        
+        <button id="sendRequest" style="padding: 10px 20px; cursor: pointer;">Enviar Token</button>
+        
+        <h3>Respuesta del Servidor:</h3>
+        <pre id="serverResponse" style="border: 1px solid #ccc; padding: 10px; background: #f9f9f9;"></pre>    
     </main>
 
     <script type="module">
@@ -78,6 +86,35 @@
         });
 
         window.handleCredentialResponse = handleCredentialResponse;
+        document.getElementById('sendRequest').addEventListener('click', async () => {
+            const token = document.getElementById('tokenInput').value.trim();
+            
+            if (!token) {
+                alert('Por favor, ingresa un token válido.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/getUserInfo', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const responseData = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(JSON.stringify(responseData));
+                }
+
+                document.getElementById('serverResponse').textContent = JSON.stringify(responseData, null, 2);
+            } catch (error) {
+                console.error('Error al hacer la solicitud:', error);
+                document.getElementById('serverResponse').textContent = `Error: ${error.message}`;
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,8 +1,13 @@
+// Importa las bibliotecas de Firebase
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+
 // Función para manejar la respuesta de credenciales de Google
 async function handleCredentialResponse(response) {
     console.log('Iniciando sesión con Google...');
     try {
       const token = response.credential;
+      console.log('Token de Google recibido:', token);
   
       const res = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/signInWithGoogle', {
         method: 'POST',
@@ -17,7 +22,8 @@ async function handleCredentialResponse(response) {
       }
   
       const data = await res.json();
-      localStorage.setItem('customToken', data.token);
+      console.log('ID Token recibido del servidor:', data.idToken);
+      localStorage.setItem('customToken', data.idToken);
       alert('¡Inicio de sesión exitoso!');
       updateUserInfo();
     } catch (error) {
@@ -25,6 +31,7 @@ async function handleCredentialResponse(response) {
       alert('Hubo un error al iniciar sesión. Inténtalo de nuevo.');
     }
   }
+
   
   // Función para manejar el envío del formulario
   async function submitSurvey(data) {
@@ -34,7 +41,7 @@ async function handleCredentialResponse(response) {
         throw new Error('Usuario no autenticado');
       }
   
-      const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/submitSurvey', {
+      const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central/submitSurvey', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
