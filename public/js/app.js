@@ -2,33 +2,35 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
 import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 
-// Función para manejar la respuesta de credenciales de Google
-async function handleCredentialResponse(response) {
+  // Función para manejar la respuesta de credenciales de 
+  async function handleCredentialResponse(response) {
     console.log('Iniciando sesión con Google...');
     try {
-      const token = response.credential;
-      console.log('Token de Google recibido:', token);
-  
-      const res = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/signInWithGoogle', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ token })
-      });
-  
-      if (!res.ok) {
-        throw new Error('Error al iniciar sesión');
-      }
-  
-      const data = await res.json();
-      console.log('ID Token recibido del servidor:', data.idToken);
-      localStorage.setItem('customToken', data.idToken);
-      alert('¡Inicio de sesión exitoso!');
-      updateUserInfo();
+        const token = response.credential;
+        console.log('Token de Google recibido:', token);
+
+        const res = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/signInWithGoogle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token })
+        });
+
+        if (!res.ok) {
+            throw new Error('Error al iniciar sesión');
+        }
+
+        const userData = await res.json();
+        console.log('Datos del usuario recibidos del servidor:', userData);
+        console.log('Token de Firebase recibido del servidor:', userData.uid);
+        localStorage.setItem('customToken', userData.uid);
+        console.log('Custom Token guardado en localStorage:', localStorage.getItem('customToken'));
+
+        alert(`¡Bienvenido ${userData.displayName}!`);
     } catch (error) {
-      console.error('Error al iniciar sesión:', error);
-      alert('Hubo un error al iniciar sesión. Inténtalo de nuevo.');
+        console.error('Error al iniciar sesión:', error);
+        alert('Hubo un error al iniciar sesión. Inténtalo de nuevo.');
     }
   }
 
@@ -37,11 +39,12 @@ async function handleCredentialResponse(response) {
   async function submitSurvey(data) {
     try {
       const token = localStorage.getItem('customToken');
+      console.log('Token de Firebase recibido en submit survey cliente:', token);
       if (!token) {
         throw new Error('Usuario no autenticado');
       }
   
-      const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central/submitSurvey', {
+      const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/submitSurvey', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
