@@ -4,7 +4,7 @@ const cors = require('cors');
 const { OAuth2Client } = require('google-auth-library');
 
 
-const corsHandler = cors({ origin: "http://127.0.0.1:5000" });
+const corsHandler = cors({ origin: "https://my-test-auth-3b2be.web.app" });
 
 const client = new OAuth2Client('750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com');
 

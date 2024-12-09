@@ -97,5 +97,6 @@
       "enabled": true
     },
     "singleProjectMode": true
-  }
+  },
+  "project": "my-test-auth-3b2be"
 }

@@ -1,36 +1,35 @@
 // Importa las bibliotecas de Firebase
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';/*
 
-  // Función para manejar la respuesta de credenciales de 
+// Función para manejar la respuesta de credenciales de 
   async function handleCredentialResponse(response) {
     console.log('Iniciando sesión con Google...');
     try {
-        const token = response.credential;
-        console.log('Token de Google recibido:', token);
-
-        const res = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/signInWithGoogle', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ token })
-        });
-
-        if (!res.ok) {
-            throw new Error('Error al iniciar sesión');
-        }
-
-        const userData = await res.json();
-        console.log('Datos del usuario recibidos del servidor:', userData);
-        console.log('Token de Firebase recibido del servidor:', userData.uid);
-        localStorage.setItem('customToken', userData.uid);
-        console.log('Custom Token guardado en localStorage:', localStorage.getItem('customToken'));
-
-        alert(`¡Bienvenido ${userData.displayName}!`);
+      const token = response.credential;
+      console.log('Token de Google recibido:', token);
+  
+      const res = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/signInWithGoogle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
+      });
+  
+      if (!res.ok) {
+        throw new Error('Error al iniciar sesión');
+      }
+  
+      const userData = await res.json();
+      console.log('Datos del usuario recibidos del servidor:', userData);
+      console.log('Custom Token recibido del servidor:', userData.idToken);
+      localStorage.setItem('customToken', userData.idToken);
+      console.log('Custom Token guardado en localStorage:', localStorage.getItem('idToken'));
+  
+      alert(`¡Bienvenido ${userData.displayName}!`);
     } catch (error) {
-        console.error('Error al iniciar sesión:', error);
-        alert('Hubo un error al iniciar sesión. Inténtalo de nuevo.');
+      console.error('Error al iniciar sesión:', error);
+      alert('Hubo un error al iniciar sesión. Inténtalo de nuevo.');
     }
   }
 
@@ -38,13 +37,12 @@ import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebase
   // Función para manejar el envío del formulario
   async function submitSurvey(data) {
     try {
-      const token = localStorage.getItem('customToken');
-      console.log('Token de Firebase recibido en submit survey cliente:', token);
+      const token = localStorage.getItem('idToken');
       if (!token) {
         throw new Error('Usuario no autenticado');
       }
   
-      const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/submitSurvey', {
+      const response = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/submitSurvey', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,10 +67,10 @@ import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebase
   // Función para obtener la información del usuario
 
   async function getUserInfo() {
-    const token = localStorage.getItem('customToken');
+    const token = localStorage.getItem('idToken');
     if (!token) return null;
   
-    const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/getUserInfo', {
+    const response = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/getUserInfo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,6 +92,101 @@ import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebase
       document.getElementById("user-info").innerText = `Usuario: ${user.displayName || user.email}`;
     }
   }
+  // Exporta las funciones para usarlas en otros scripts
+  export { handleCredentialResponse, submitSurvey, getUserInfo };*/
+  
+  async function handleCredentialResponse(response) {
+    console.log("Iniciando sesión con Google...");
+    try {
+      const token = response.credential; // Obtiene el id_token proporcionado por Google Identity Services
+      console.log("Token de Google recibido:", token);
+  
+      // Enviar el token al backend para procesar la autenticación
+      const res = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/signInWithGoogle', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token }),
+      });
+  
+      if (!res.ok) {
+        throw new Error("Error al autenticar en el backend");
+      }
+  
+      const userData = await res.json();
+      console.log("Datos del usuario recibidos del servidor:", userData);
+  
+      // Guarda el token personalizado en el almacenamiento local
+      localStorage.setItem("firebaseToken", userData.firebaseToken);
+      console.log("Custom Token guardado en localStorage:", userData.firebaseToken);
+  
+      alert(`¡Bienvenido ${userData.displayName}!`);
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      alert("Hubo un error al iniciar sesión. Inténtalo de nuevo.");
+    }
+  }
+  
+  async function submitSurvey(data) {
+    const token = localStorage.getItem("firebaseToken");
+    if (!token) {
+      console.error("No hay un token JWT disponible. El usuario debe iniciar sesión.");
+      alert("Inicia sesión antes de enviar la encuesta.");
+      return;
+    }
+  
+    try {
+      const response = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/submitSurvey', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Error al enviar la encuesta");
+      }
+  
+      const result = await response.json();
+      console.log("Respuesta del backend:", result);
+      alert("¡Encuesta enviada exitosamente!");
+    } catch (error) {
+      console.error("Error al enviar datos al backend:", error);
+      alert("Hubo un error al enviar la encuesta. Inténtalo de nuevo.");
+    }
+  }
+  
+  async function getUserInfo() {
+    const token = localStorage.getItem("firebaseToken");
+    if (!token) {
+      console.error("No hay un token JWT disponible. El usuario debe iniciar sesión.");
+      return null;
+    }
+  
+    try {
+      const response = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/getUserInfo', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error("Error al obtener la información del usuario");
+      }
+  
+      const userInfo = await response.json();
+      return userInfo;
+    } catch (error) {
+      console.error("Error al obtener la información del usuario:", error);
+      return null;
+    }
+  }
   
   // Exporta las funciones para usarlas en otros scripts
   export { handleCredentialResponse, submitSurvey, getUserInfo };
+  
