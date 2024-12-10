@@ -3,10 +3,16 @@ const admin = require('firebase-admin');
 const cors = require('cors');
 const { OAuth2Client } = require('google-auth-library');
 
+const corsOrigin = functions.config().cors.origin;
+const corsOriginLocal = functions.config().cors.origin_local;
+const nodeEnv = functions.config().node.env;
 
-const corsHandler = cors({ origin: "https://my-test-auth-3b2be.web.app" });
+const corsHandler = cors({
+  origin: 'https://my-test-auth-3b2be.web.app',
+  credentials: true,
+});
 
-const client = new OAuth2Client('750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com');
+const client = new OAuth2Client('750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com');
 
 
 exports.getUserInfo = functions.https.onRequest((req, res) => {
@@ -27,7 +33,7 @@ exports.getUserInfo = functions.https.onRequest((req, res) => {
 
       const ticket = await client.verifyIdToken({
         idToken: idToken,
-        audience: '750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com',
+        audience: '750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com',
       });
 
       const payload = ticket.getPayload();

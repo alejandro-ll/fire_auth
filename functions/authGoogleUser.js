@@ -4,84 +4,73 @@ const cors = require("cors");
 
 const { OAuth2Client } = require('google-auth-library');
 
-const corsHandler = cors({ origin: "https://my-test-auth-3b2be.web.app" });
+const corsHandler = cors({ origin: 'https://my-test-auth-3b2be.web.app' });
 
-const client = new OAuth2Client('750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com');
-/*
+const client = new OAuth2Client('750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com');
+
 exports.signInWithGoogle = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-      if (req.method !== 'POST') {
-        return res.status(405).send({ message: 'Método no permitido' });
-      }
-  
-      const { token } = req.body;
-  
-      try {
-        console.log('Token de Google recibido:', token);
-  
-        const ticket = await client.verifyIdToken({
-          idToken: token,
-          audience: '750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com',
-        });
-  
-        const payload = ticket.getPayload();
-        console.log('Payload del token de Google:', payload);
-  
-        let firebaseUser;
-        try {
-          firebaseUser = await admin.auth().getUser(payload.sub);
-          console.log('Usuario ya registrado en Firebase:', firebaseUser);
-        } catch (error) {
-          if (error.code === 'auth/user-not-found') {
-            firebaseUser = await admin.auth().createUser({
-              uid: payload.sub,
-              email: payload.email,
-              displayName: payload.name,
-              photoURL: payload.picture,
-            });
-            console.log('Nuevo usuario creado en Firebase:', firebaseUser);
-          } else {
-            throw error;
-          }
+        if (req.method !== 'POST') {
+            return res.status(405).send({ message: 'Método no permitido' });
         }
-  
-        return res.status(200).send({ idToken: token, displayName: firebaseUser.displayName });
-      } catch (error) {
-        console.error('Error al verificar el token de Google o crear el usuario:', error);
-        return res.status(500).send({ message: 'Error al iniciar sesión', details: error.message });
-      }
+
+        const { token } = req.body;
+        console.log('Token de Google recibido:', token);
+
+        try {
+            // Verificar el token de Google
+            const ticket = await client.verifyIdToken({
+                idToken: token,
+                audience: "750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com",
+            });
+            console.log('Token de Google verificado:', ticket);
+
+            const payload = ticket.getPayload();
+            const uid = payload.sub; // El UID único del usuario
+
+            let firebaseUser;
+            try {
+                // Obtener o crear el usuario en Firebase
+                firebaseUser = await admin.auth().getUser(uid);
+                console.log('Usuario ya registrado en Firebase:', firebaseUser);
+            } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                    firebaseUser = await admin.auth().createUser({
+                        uid,
+                        email: payload.email,
+                        displayName: payload.name,
+                        photoURL: payload.picture,
+                    });
+                    console.log('Nuevo usuario creado en Firebase:', firebaseUser);
+                } else {
+                    throw error;
+                }
+            }
+
+            // Generar un custom token
+            const customToken = await admin.auth().createCustomToken(uid);
+            console.log('Custom token generado:', customToken);
+
+            // Usar el custom token para autenticar y obtener el ID token
+            const idToken = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyDey9cyNvBBMVpeVQWgZChZDJPxbecapW8`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+                }
+            )
+                .then(response => response.json())
+                .then(data => data.idToken);
+
+            if (!idToken) {
+                throw new Error('No se pudo generar el ID token');
+            }
+
+            res.status(200).send({ idToken });
+        } catch (error) {
+            console.error('Error en el proceso de autenticación:', error);
+            res.status(500).send({ error: 'Error en el proceso de autenticación' });
+        }
     });
-  });
-*/
-  exports.signInWithGoogle = functions.https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-      if (req.method !== 'POST') {
-        return res.status(405).send({ message: 'Método no permitido' });
-      }
-  
-      const { token } = req.body;
-  
-      try {
-        // Verificar el token de Google
-        const ticket = await client.verifyIdToken({
-          idToken: token,
-          audience: '750135621005-db2iu5c8j134lh8vci7fgavjj48n4dvs.apps.googleusercontent.com',
-        });
-  
-        const payload = ticket.getPayload();
-        const uid = payload['sub']; // ID único de Google
-  
-        // Crear un JWT personalizado con Firebase Admin
-        const customToken = await admin.auth().createCustomToken(uid);
-  
-        res.status(200).send({
-          message: 'Inicio de sesión exitoso',
-          firebaseToken: customToken, // Este es el JWT generado para el cliente
-        });
-      } catch (error) {
-        console.error('Error al autenticar con Google:', error);
-        res.status(401).send({ message: 'Autenticación fallida', error });
-      }
-    });
-  });
-  
+});
