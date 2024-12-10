@@ -53,7 +53,7 @@ exports.signInWithGoogle = functions.https.onRequest((req, res) => {
 
             // Usar el custom token para autenticar y obtener el ID token
             const idToken = await fetch(
-                `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyDey9cyNvBBMVpeVQWgZChZDJPxbecapW8`,
+                `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
