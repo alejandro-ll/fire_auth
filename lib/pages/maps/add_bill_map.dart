@@ -289,64 +289,6 @@ class _BillMap extends State<BillMap> with RouteAware {
       'active': true,
       'startTime': FieldValue.serverTimestamp(),
     });
-
-    // Establecer un temporizador de 5 minutos para la subasta
-    Future.delayed(Duration(minutes: 5), () async {
-      final highestBid = await getHighestBid(docRef.id);
-      if (highestBid != null) {
-        final highestBidderId = highestBid['userId'];
-        final highestBidAmount = highestBid['bidAmount'];
-        final code = _generateCode();
-
-        try {
-          await FirebaseFirestore.instance.collection('auctions').doc(docRef.id).update({
-            'active': false,
-            'winnerId': highestBidderId,
-            'code': code,
-          });
-
-          Fluttertoast.showToast(
-            msg: 'La subasta ha finalizado. El ganador ha pagado \$${highestBidAmount}.',
-            toastLength: Toast.LENGTH_LONG,
-            gravity: ToastGravity.SNACKBAR,
-            backgroundColor: Colors.black54,
-            textColor: Colors.white,
-            fontSize: 14.0,
-          );
-
-          // Mostrar el código al ganador
-          if (FirebaseAuth.instance.currentUser!.uid == highestBidderId) {
-            _showWinnerCodeDialog(code);
-          }
-        } catch (e) {
-          Fluttertoast.showToast(
-            msg: 'Error al actualizar la subasta: ${e.toString()}',
-            toastLength: Toast.LENGTH_LONG,
-            gravity: ToastGravity.SNACKBAR,
-            backgroundColor: Colors.black54,
-            textColor: Colors.white,
-            fontSize: 14.0,
-          );
-        }
-      } else {
-        Fluttertoast.showToast(
-          msg: 'La subasta ha finalizado sin pujas.',
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.SNACKBAR,
-          backgroundColor: Colors.black54,
-          textColor: Colors.white,
-          fontSize: 14.0,
-        );
-
-        await FirebaseFirestore.instance.collection('auctions').doc(docRef.id).update({
-          'active': false,
-        });
-      }
-
-      setState(() {
-        _markers.removeWhere((marker) => marker.markerId.value == docRef.id);
-      });
-    });
   }
 
   Future<Map<String, dynamic>?> getHighestBid(String auctionId) async {

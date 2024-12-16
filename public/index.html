@@ -95,7 +95,7 @@
             }
 
             try {
-                const response = await fetch('http://127.0.0.1:5001/my-test-auth-3b2be/us-central1/getUserInfo', {
+                const response = await fetch('https://us-central1-my-test-auth-3b2be.cloudfunctions.net/getUserInfo', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
