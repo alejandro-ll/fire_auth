@@ -1,21 +1,30 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
-const cors = require("cors");
-
+const cors = require('cors');
 const { OAuth2Client } = require('google-auth-library');
 
-const corsHandler = cors({ origin: 'https://my-test-auth-3b2be.web.app' });
+// Configuración de CORS
+const corsHandler = cors({ origin: 'https://my-test-auth-3b2be.web.app', credentials: true });
 
 const client = new OAuth2Client('750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com');
 
-exports.signInWithGoogle = functions.https.onRequest((req, res) => {
+exports.signInWithGoogle = onRequest({ region: 'us-central1' }, (req, res) => {
+    // Responder explícitamente a las solicitudes OPTIONS
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', 'https://my-test-auth-3b2be.web.app');
+        res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.set('Access-Control-Allow-Credentials', 'true');
+        res.status(204).send('');
+        return;
+    }
+
     corsHandler(req, res, async () => {
         if (req.method !== 'POST') {
             return res.status(405).send({ message: 'Método no permitido' });
         }
 
         const { token } = req.body;
-        console.log('Token de Google recibido:', token);
 
         try {
             // Verificar el token de Google
@@ -23,16 +32,13 @@ exports.signInWithGoogle = functions.https.onRequest((req, res) => {
                 idToken: token,
                 audience: "750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com",
             });
-            console.log('Token de Google verificado:', ticket);
 
             const payload = ticket.getPayload();
-            const uid = payload.sub; // El UID único del usuario
+            const uid = payload.sub;
 
             let firebaseUser;
             try {
-                // Obtener o crear el usuario en Firebase
                 firebaseUser = await admin.auth().getUser(uid);
-                console.log('Usuario ya registrado en Firebase:', firebaseUser);
             } catch (error) {
                 if (error.code === 'auth/user-not-found') {
                     firebaseUser = await admin.auth().createUser({
@@ -41,17 +47,13 @@ exports.signInWithGoogle = functions.https.onRequest((req, res) => {
                         displayName: payload.name,
                         photoURL: payload.picture,
                     });
-                    console.log('Nuevo usuario creado en Firebase:', firebaseUser);
                 } else {
                     throw error;
                 }
             }
 
-            // Generar un custom token
             const customToken = await admin.auth().createCustomToken(uid);
-            console.log('Custom token generado:', customToken);
 
-            // Usar el custom token para autenticar y obtener el ID token
             const idToken = await fetch(
                 `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyDey9cyNvBBMVpeVQWgZChZDJPxbecapW8`,
                 {
@@ -67,9 +69,14 @@ exports.signInWithGoogle = functions.https.onRequest((req, res) => {
                 throw new Error('No se pudo generar el ID token');
             }
 
+            // Responder con las cabeceras CORS
+            res.set('Access-Control-Allow-Origin', 'https://my-test-auth-3b2be.web.app');
+            res.set('Access-Control-Allow-Credentials', 'true');
             res.status(200).send({ idToken });
         } catch (error) {
             console.error('Error en el proceso de autenticación:', error);
+            res.set('Access-Control-Allow-Origin', 'https://my-test-auth-3b2be.web.app');
+            res.set('Access-Control-Allow-Credentials', 'true');
             res.status(500).send({ error: 'Error en el proceso de autenticación' });
         }
     });

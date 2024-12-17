@@ -1,21 +1,12 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const cors = require('cors');
 const { OAuth2Client } = require('google-auth-library');
 
-const corsOrigin = functions.config().cors.origin;
-const corsOriginLocal = functions.config().cors.origin_local;
-const nodeEnv = functions.config().node.env;
-
-const corsHandler = cors({
-  origin: 'https://my-test-auth-3b2be.web.app',
-  credentials: true,
-});
-
+const corsHandler = cors({ origin: 'https://my-test-auth-3b2be.web.app', credentials: true });
 const client = new OAuth2Client('750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com');
 
-
-exports.getUserInfo = functions.https.onRequest((req, res) => {
+exports.getUserInfo = onRequest({ region: 'us-central1' }, (req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== 'POST') {
       return res.status(405).send({ message: 'Método no permitido' });
@@ -29,23 +20,13 @@ exports.getUserInfo = functions.https.onRequest((req, res) => {
     const idToken = authHeader.split('Bearer ')[1];
 
     try {
-      console.log('Token de ID recibido del cliente:', idToken);
-
       const ticket = await client.verifyIdToken({
-        idToken: idToken,
+        idToken,
         audience: '750135621005-akdhv1a9njtblhu962q9oppi4e253svo.apps.googleusercontent.com',
       });
 
       const payload = ticket.getPayload();
-      console.log('Token de ID decodificado:', payload);
-
       const user = await admin.auth().getUser(payload.sub);
-      console.log('Información del usuario obtenida:', {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-      });
 
       return res.status(200).send({
         uid: user.uid,
@@ -55,7 +36,7 @@ exports.getUserInfo = functions.https.onRequest((req, res) => {
       });
     } catch (error) {
       console.error('Error al obtener la información del usuario:', error);
-      return res.status(500).send({ message: `Error interno del servidor: ${error.message}` });
+      return res.status(500).send({ message: `Error interno: ${error.message}` });
     }
   });
 });

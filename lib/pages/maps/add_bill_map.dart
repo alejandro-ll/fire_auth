@@ -291,48 +291,6 @@ class _BillMap extends State<BillMap> with RouteAware {
     });
   }
 
-  Future<Map<String, dynamic>?> getHighestBid(String auctionId) async {
-    final bids = await FirebaseFirestore.instance
-        .collection('auctions')
-        .doc(auctionId)
-        .collection('bids')
-        .orderBy('bidAmount', descending: true)
-        .limit(1)
-        .get();
-
-    if (bids.docs.isNotEmpty) {
-      return bids.docs.first.data();
-    } else {
-      return null;
-    }
-  }
-
-  String _generateCode() {
-    final random = Random();
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return String.fromCharCodes(Iterable.generate(6, (_) => characters.codeUnitAt(random.nextInt(characters.length))));
-  }
-
-  void _showWinnerCodeDialog(String code) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Código de Ganador'),
-          content: Text('Tu código es: $code'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showBidDialog(String auctionId) async {
     final doc = await FirebaseFirestore.instance.collection('auctions').doc(auctionId).get();
     final data = doc.data();
